@@ -13,18 +13,3 @@ C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Application\obj\Debu
 C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\refint\QuanLyKho.Application.dll
 C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.pdb
 C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\ref\QuanLyKho.Application.dll
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\bin\Debug\net8.0\QuanLyKho.Application.deps.json
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\bin\Debug\net8.0\QuanLyKho.Application.dll
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\bin\Debug\net8.0\QuanLyKho.Application.pdb
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\bin\Debug\net8.0\QuanLyKho.Domain.dll
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\bin\Debug\net8.0\QuanLyKho.Domain.pdb
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.csproj.AssemblyReference.cache
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.AssemblyInfoInputs.cache
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.AssemblyInfo.cs
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.csproj.CoreCompileInputs.cache
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKh.94729C10.Up2Date
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.dll
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\refint\QuanLyKho.Application.dll
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\QuanLyKho.Application.pdb
-C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Application\obj\Debug\net8.0\ref\QuanLyKho.Application.dll
