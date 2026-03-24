@@ -1,0 +1,313 @@
+@page "/sales-orders"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Components.Pages.Shared
+@using QuanLyKho.Web.Services
+
+<PageTitle>Đơn Đặt Hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4" GutterBottom="true">Quản Lý Đơn Đặt Hàng</MudText>
+
+    <MudPaper Class="pa-4" Elevation="2" Rounded="true">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-4">
+            <MudStack Row="true" Align="Align.End" Spacing="2">
+                <MudTextField @bind-Value="searchText"
+                              Label="Tìm theo số đơn, khách hàng"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Style="width: 280px;" />
+                <MudSelect T="SalesOrderStatus?" @bind-Value="filterStatus" Label="Trạng thái" Variant="Variant.Outlined" Dense="true" Style="width: 200px;">
+                    <MudSelectItem T="SalesOrderStatus?" Value="@((SalesOrderStatus?)null)">Tất cả</MudSelectItem>
+                    <MudSelectItem T="SalesOrderStatus?" Value="@((SalesOrderStatus?)SalesOrderStatus.Moi)">Mới</MudSelectItem>
+                    <MudSelectItem T="SalesOrderStatus?" Value="@((SalesOrderStatus?)SalesOrderStatus.DangSanXuat)">Đang sản xuất</MudSelectItem>
+                    <MudSelectItem T="SalesOrderStatus?" Value="@((SalesOrderStatus?)SalesOrderStatus.HoanThanh)">Hoàn thành</MudSelectItem>
+                    <MudSelectItem T="SalesOrderStatus?" Value="@((SalesOrderStatus?)SalesOrderStatus.DaHuy)">Đã hủy</MudSelectItem>
+                </MudSelect>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="ResetFilters">
+                    Xóa lọc
+                </MudButton>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialog">
+                Thêm Đơn Hàng
+            </MudButton>
+        </MudStack>
+
+        <MudTable T="SalesOrder" Items="@FilteredOrders" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Số đơn</MudTh>
+                <MudTh>Ngày đặt</MudTh>
+                <MudTh>Khách hàng</MudTh>
+                <MudTh>Điện thoại</MudTh>
+                <MudTh>Trạng thái</MudTh>
+                <MudTh Align="Align.Right">Tổng tiền</MudTh>
+                <MudTh Align="Align.Right">Đã trả</MudTh>
+                <MudTh Align="Align.Right">Còn lại</MudTh>
+                <MudTh>Hành động</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.SoDonHang</MudTd>
+                <MudTd>@context.NgayDat.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@context.TenKhachHang</MudTd>
+                <MudTd>@context.DienThoai</MudTd>
+                <MudTd>
+                    <MudChip T="string" Color="@GetStatusColor(context.TrangThai)" Size="Size.Small">
+                        @GetStatusText(context.TrangThai)
+                    </MudChip>
+                </MudTd>
+                <MudTd Align="Align.Right">
+                    @context.TongTien.ToString("N0") ₫
+                </MudTd>
+                <MudTd Align="Align.Right">
+                    @context.TienDaTraTruoc.ToString("N0") ₫
+                </MudTd>
+                <MudTd Align="Align.Right">
+                    @context.ConLai.ToString("N0") ₫
+                </MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="() => OpenEditDialog(context)" />
+                    @if (context.TrangThai == SalesOrderStatus.Moi)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Primary" Size="Size.Small" OnClick="() => UpdateStatus(context, SalesOrderStatus.DangSanXuat)" />
+                    }
+                    @if (context.TrangThai == SalesOrderStatus.DangSanXuat)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" OnClick="() => UpdateStatus(context, SalesOrderStatus.HoanThanh)" />
+                    }
+                    @if (context.ConLai > 0)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Payment" Color="Color.Warning" Size="Size.Small" OnClick="() => OpenPaymentDialog(context)" />
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Primary" Size="Size.Small" OnClick="() => ExportPdf(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => DeleteOrder(context)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info">Chưa có đơn đặt hàng.</MudAlert>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Inject] private ISalesOrderService SalesOrderService { get; set; } = default!;
+    [Inject] private ICompanySettingService CompanySettingService { get; set; } = default!;
+    [Inject] private IWebHostEnvironment WebHost { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private List<SalesOrder> orders = new();
+    private string searchText = "";
+    private SalesOrderStatus? filterStatus = null;
+    private bool loading = false;
+
+    private IEnumerable<SalesOrder> FilteredOrders =>
+        orders.Where(o =>
+            (string.IsNullOrWhiteSpace(searchText)
+             || (o.SoDonHang?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+             || (o.TenKhachHang?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false))
+            && (!filterStatus.HasValue || o.TrangThai == filterStatus.Value));
+
+    protected override async Task OnInitializedAsync() => await LoadOrders();
+
+    private async Task LoadOrders()
+    {
+        loading = true;
+        StateHasChanged();
+        orders = await SalesOrderService.GetAllAsync();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private void ResetFilters()
+    {
+        searchText = "";
+        filterStatus = null;
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var order = new SalesOrder { NgayDat = DateTime.Now };
+        var items = new List<SalesOrderItem>();
+        var parameters = new DialogParameters
+        {
+            ["Order"] = order,
+            ["Items"] = items
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.False, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<SalesOrderDialog>("Thêm Đơn Đặt Hàng", parameters, options);
+        var result = await dialog.Result;
+        if (result.Canceled || result.Data is not ValueTuple<SalesOrder, List<SalesOrderItem>> data) return;
+
+        var (o, its) = data;
+        try
+        {
+            await SalesOrderService.CreateAsync(o, its);
+            await LoadOrders();
+            Snackbar.Add("Đã tạo đơn đặt hàng.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task OpenEditDialog(SalesOrder order)
+    {
+        var full = await SalesOrderService.GetByIdAsync(order.Id);
+        if (full == null) return;
+        var cloneOrder = new SalesOrder
+        {
+            Id = full.Id,
+            SoDonHang = full.SoDonHang,
+            NgayDat = full.NgayDat,
+            CustomerId = full.CustomerId,
+            TenKhachHang = full.TenKhachHang,
+            DienThoai = full.DienThoai,
+            DiaChiGiaoHang = full.DiaChiGiaoHang,
+            TrangThai = full.TrangThai,
+            GhiChu = full.GhiChu
+        };
+        var items = full.ChiTiet.Select(i => new SalesOrderItem
+        {
+            Id = i.Id,
+            SalesOrderId = i.SalesOrderId,
+            MoTaSanPham = i.MoTaSanPham,
+            SoLuong = i.SoLuong,
+            DonVi = i.DonVi,
+            DonGia = i.DonGia
+        }).ToList();
+
+        var parameters = new DialogParameters
+        {
+            ["Order"] = cloneOrder,
+            ["Items"] = items
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.False, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<SalesOrderDialog>($"Đơn {full.SoDonHang}", parameters, options);
+        var result = await dialog.Result;
+        if (result.Canceled || result.Data is not ValueTuple<SalesOrder, List<SalesOrderItem>> data) return;
+
+        var (o, its) = data;
+        o.Id = full.Id;
+        try
+        {
+            await SalesOrderService.UpdateAsync(o, its);
+            await LoadOrders();
+            Snackbar.Add("Đã cập nhật đơn đặt hàng.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UpdateStatus(SalesOrder order, SalesOrderStatus status)
+    {
+        try
+        {
+            await SalesOrderService.UpdateStatusAsync(order.Id, status);
+            await LoadOrders();
+            Snackbar.Add("Đã cập nhật trạng thái đơn hàng.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteOrder(SalesOrder order)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Xóa đơn đặt hàng {order.SoDonHang}?",
+            ["ButtonText"] = "Xóa",
+            ["Color"] = Color.Error
+        };
+        var dialog = await DialogService.ShowAsync<MessageBoxDialog>("Xác nhận", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        await SalesOrderService.DeleteAsync(order.Id);
+        await LoadOrders();
+        Snackbar.Add("Đã xóa đơn đặt hàng.", Severity.Success);
+    }
+
+    private async Task OpenPaymentDialog(SalesOrder order)
+    {
+        var full = await SalesOrderService.GetByIdAsync(order.Id);
+        if (full == null) return;
+        var parameters = new DialogParameters
+        {
+            ["Order"] = full
+        };
+        var dialog = await DialogService.ShowAsync<SalesOrderPaymentDialog>("Cập nhật thanh toán", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled || result.Data is not decimal tien) return;
+
+        try
+        {
+            await SalesOrderService.UpdatePaymentAsync(full.Id, tien);
+            await LoadOrders();
+            Snackbar.Add("Đã cập nhật tiền thanh toán đơn hàng.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ExportPdf(SalesOrder order)
+    {
+        try
+        {
+            var full = await SalesOrderService.GetByIdAsync(order.Id);
+            if (full == null) return;
+            var company = await CompanySettingService.GetAsync();
+
+            byte[]? logo = null;
+            if (!string.IsNullOrWhiteSpace(company.LogoPath))
+            {
+                var path = Path.Combine(WebHost.WebRootPath, company.LogoPath.TrimStart('/', '\\'));
+                if (File.Exists(path)) logo = await File.ReadAllBytesAsync(path);
+            }
+
+            var pdfBytes = SalesOrderPdfService.GeneratePdfBytes(full, company, logo);
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", $"DonHang_{full.SoDonHang}.pdf", "application/pdf", base64);
+            Snackbar.Add("Đã xuất PDF đơn hàng.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private Color GetStatusColor(SalesOrderStatus status) =>
+        status switch
+        {
+            SalesOrderStatus.Moi => Color.Info,
+            SalesOrderStatus.DangSanXuat => Color.Primary,
+            SalesOrderStatus.HoanThanh => Color.Success,
+            SalesOrderStatus.DaHuy => Color.Error,
+            _ => Color.Default
+        };
+
+    private string GetStatusText(SalesOrderStatus status) =>
+        status switch
+        {
+            SalesOrderStatus.Moi => "Mới",
+            SalesOrderStatus.DangSanXuat => "Đang sản xuất",
+            SalesOrderStatus.HoanThanh => "Hoàn thành",
+            SalesOrderStatus.DaHuy => "Đã hủy",
+            _ => ""
+        };
+}
+

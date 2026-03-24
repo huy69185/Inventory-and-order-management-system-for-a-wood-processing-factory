@@ -1,0 +1,69 @@
+﻿@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>
+        Nhập Kho - @TenSanPham
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm>
+            <MudNumericField @bind-Value="SoLuongNhap"
+                             Label="Số Lượng Nhập"
+                             Variant="Variant.Outlined"
+                             Min="1"
+                             Required="true" />
+
+            <MudNumericField @bind-Value="GiaNhapMoi"
+                             Label="Giá Nhập Mới"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Required="true"
+                             Adornment="Adornment.End"
+                             AdornmentText="₫" />
+
+            <MudTextField @bind-Value="GhiChu"
+                          Label="Ghi Chú (tùy chọn)"
+                          Variant="Variant.Outlined" />
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Submit">Xác Nhận Nhập Kho</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int ProductId { get; set; }
+    [Parameter] public string TenSanPham { get; set; } = "";
+
+    private int SoLuongNhap = 1;
+    private decimal GiaNhapMoi = 0;
+    private string GhiChu = "";
+
+    private async Task Submit()
+    {
+        if (SoLuongNhap <= 0 || GiaNhapMoi <= 0)
+        {
+            // Có thể thêm thông báo lỗi nếu cần
+            return;
+        }
+
+        // Trả về object chứa dữ liệu nhập kho để Products.razor gọi service
+        var resultData = new
+        {
+            ProductId,
+            SoLuongNhap,
+            GiaNhapMoi,
+            GhiChu
+        };
+
+        MudDialog.Close(DialogResult.Ok(resultData));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

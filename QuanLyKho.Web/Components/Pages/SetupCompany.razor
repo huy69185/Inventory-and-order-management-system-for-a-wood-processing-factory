@@ -1,0 +1,162 @@
+@page "/setup-company"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@inject ICompanySettingService CompanySettingService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<MudCard>
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Thiết Lập Thông Tin Doanh Nghiệp</MudText>
+            <MudText Typo="Typo.subtitle1">Vui lòng nhập đầy đủ thông tin để sử dụng hệ thống và in hóa đơn</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent Class="pa-4">
+        <MudForm>
+            <MudGrid Spacing="4">
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1" Class="mb-2"><strong>Tên Công Ty / Cửa Hàng *</strong></MudText>
+                    <MudTextField @bind-Value="setting.TenCongTy"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Vui lòng nhập tên công ty"
+                                  Style="max-width:  100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1" Class="mb-2"><strong>Địa Chỉ *</strong></MudText>
+                    <MudTextField @bind-Value="setting.DiaChi"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Vui lòng nhập địa chỉ"
+                                  Style="max-width: 100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1" Class="mb-2">Điện Thoại</MudText>
+                    <MudTextField @bind-Value="setting.DienThoai"
+                                  Variant="Variant.Outlined"
+                                  Style="max-width: 100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1" Class="mb-2">Email</MudText>
+                    <MudTextField @bind-Value="setting.Email"
+                                  Variant="Variant.Outlined"
+                                  Style="max-width: 100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1" Class="mb-2"><strong>Mã Số Thuế *</strong></MudText>
+                    <MudTextField @bind-Value="setting.MaSoThue"
+                                  Variant="Variant.Outlined"
+                                  Required="true"
+                                  RequiredError="Vui lòng nhập mã số thuế"
+                                  Style="max-width: 100%;" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1" Class="mb-2">Đường dẫn Logo (tùy chọn)</MudText>
+                    <MudTextField @bind-Value="setting.LogoPath"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Ví dụ: wwwroot/images/logo.png"
+                                  Style="max-width: 100%;" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.subtitle1" Class="mb-2"><strong>Tỷ lệ thuế theo quy định (tự tính trên doanh thu)</strong></MudText>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.body2" Class="mb-1">Thuế GTGT trực tiếp trên doanh thu (%)</MudText>
+                    <MudNumericField @bind-Value="setting.TyLeThueGTGTTrucTiep" Variant="Variant.Outlined" Min="0" Max="10" Style="max-width: 100%;"
+                                    HelperText="Theo Nghị định: 1%, 2% hoặc 5% tùy ngành" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.body2" Class="mb-1">Thuế suất GTGT mặc định trên hóa đơn (%)</MudText>
+                    <MudNumericField @bind-Value="setting.ThueGTGTMacDinh" Variant="Variant.Outlined" Min="0" Max="100" Style="max-width: 100%;"
+                                    HelperText="0, 5 hoặc 10% - áp dụng khi lập HĐ" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudText Typo="Typo.body2" Class="mb-1">Tỷ lệ thu nhập ước tính từ doanh thu (%)</MudText>
+                    <MudNumericField @bind-Value="setting.TyLeThuNhapUocTinh" Variant="Variant.Outlined" Min="0" Max="100" Style="max-width: 100%;"
+                                    HelperText="Để ước tính TNCN từ doanh thu kỳ (vd: 30%)" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </MudCardContent>
+    <MudCardActions Class="pa-4">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Size="Size.Large"
+                   OnClick="Save"
+                   Disabled="@isLoading">
+            @if (isLoading)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <text>Lưu & Tiếp Tục</text>
+            }
+        </MudButton>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    private CompanySetting setting = new();
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            setting = await CompanySettingService.GetAsync();
+            Console.WriteLine($"Loaded:  TenCongTy={setting.TenCongTy}, Id={setting.Id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading: {ex}");
+            Snackbar.Add($"Lỗi tải dữ liệu:  {ex.Message}", Severity.Error);
+            setting = new CompanySetting { Id = 1 };
+        }
+    }
+
+    private bool CanSave()
+    {
+        var result = !string.IsNullOrWhiteSpace(setting.TenCongTy) &&
+                     !string.IsNullOrWhiteSpace(setting.DiaChi) &&
+                     !string.IsNullOrWhiteSpace(setting.MaSoThue);
+        Console.WriteLine($"CanSave: {result} (TenCongTy={setting.TenCongTy?.Length}, DiaChi={setting.DiaChi?.Length}, MaSoThue={setting.MaSoThue?.Length})");
+        return result;
+    }
+
+    private async Task Save()
+    {
+        Console.WriteLine("Save button clicked!");
+
+        if (!CanSave())
+        {
+            Snackbar.Add("Vui lòng nhập đầy đủ các thông tin có dấu (*).", Severity.Warning);
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            Console.WriteLine($"Saving:  {setting.TenCongTy}, {setting.DiaChi}, {setting.MaSoThue}");
+            await CompanySettingService.UpdateAsync(setting);
+            Snackbar.Add("Thiết lập doanh nghiệp thành công!", Severity.Success);
+            await Task.Delay(500);
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Save error: {ex}");
+            Snackbar.Add($"Lỗi:  {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

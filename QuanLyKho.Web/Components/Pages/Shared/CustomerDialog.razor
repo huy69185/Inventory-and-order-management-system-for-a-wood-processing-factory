@@ -1,0 +1,30 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>
+        @(Customer.Id == 0 ? "Thêm Khách Hàng" : "Sửa Khách Hàng")
+    </TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="Customer.MaKhachHang" Label="Mã KH" Variant="Variant.Outlined" Class="mt-2" HelperText="Để trống sẽ tự sinh" />
+            <MudTextField @bind-Value="Customer.TenKhachHang" Label="Tên khách hàng *" Variant="Variant.Outlined" Required RequiredError="Nhập tên" Class="mt-2" />
+            <MudTextField @bind-Value="Customer.DienThoai" Label="Điện thoại" Variant="Variant.Outlined" Class="mt-2" />
+            <MudTextField @bind-Value="Customer.DiaChi" Label="Địa chỉ" Variant="Variant.Outlined" Class="mt-2" Lines="2" />
+            <MudTextField @bind-Value="Customer.Email" Label="Email" Variant="Variant.Outlined" Class="mt-2" />
+            <MudTextField @bind-Value="Customer.GhiChu" Label="Ghi chú" Variant="Variant.Outlined" Class="mt-2" Lines="2" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Lưu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Customer Customer { get; set; } = new();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Customer));
+    private void Cancel() => MudDialog.Cancel();
+}

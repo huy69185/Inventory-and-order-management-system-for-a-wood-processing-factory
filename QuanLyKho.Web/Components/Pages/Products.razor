@@ -1,0 +1,212 @@
+@page "/products"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Components.Pages.Shared
+@inject IProductService ProductService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mt-4 mb-4">Quản Lý Sản Phẩm</MudText>
+
+    <!-- Thanh công cụ -->
+    <MudToolBar Class="mb-4 pa-2" Elevation="1">
+        <MudTextField @bind-Value="searchText"
+                      Label="Tìm theo tên hoặc mã sản phẩm"
+                      Variant="Variant.Outlined"
+                      Immediate="true"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mt-0"
+                      Style="width: 350px;"
+                      OnKeyUp="SearchProducts" />
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenAddDialog">
+            Thêm Sản Phẩm Mới
+        </MudButton>
+    </MudToolBar>
+
+    <!-- Bảng nguyên liệu -->
+    <MudPaper Class="pa-0" Elevation="2" Rounded="true" Outlined="true">
+        <MudTable T="Product" Items="@products"
+                  Hover="true"
+                  Striped="true"
+                  Bordered="true"
+                  StickyHeader="true"
+                  Breakpoint="Breakpoint.Sm"
+                  Loading="@loading"
+                  Dense="true">
+                    <HeaderContent>
+                        <MudTh>Mã SP</MudTh>
+                        <MudTh>Tên SP</MudTh>
+                        <MudTh>Nhà cung cấp</MudTh>
+                        <MudTh>Đơn Vị</MudTh>
+                        <MudTh>Tồn Kho</MudTh>
+                        <MudTh>Giá Nhập</MudTh>
+                        <MudTh>Giá Bán</MudTh>
+                        <MudTh>Ngày Cập Nhật</MudTh>
+                        <MudTh>Hành Động</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Mã SP">@context.MaSanPham</MudTd>
+                        <MudTd DataLabel="Tên SP">@context.TenSanPham</MudTd>
+                        <MudTd DataLabel="Nhà cung cấp">@context.Supplier?.TenNhaCungCap</MudTd>
+                        <MudTd DataLabel="Đơn Vị">@context.DonVi</MudTd>
+                        <MudTd DataLabel="Tồn Kho">
+                            <MudChip T="string"
+                                     Color="@(context.SoLuongTon < 10 ? Color.Error : (context.SoLuongTon == 0 ? Color.Warning : Color.Success))"
+                                     Variant="Variant.Filled">
+                                @context.SoLuongTon @context.DonVi
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Giá Nhập">@context.GiaNhap.ToString("N0") ₫</MudTd>
+                        <MudTd DataLabel="Giá Bán">@context.GiaBan.ToString("N0") ₫</MudTd>
+                        <MudTd DataLabel="Ngày Cập Nhật">@context.NgayCapNhat.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                        <MudTd DataLabel="Hành Động">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="() => OpenEditDialog(context)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="() => DeleteProduct(context.Id)" />
+                            <MudIconButton Icon="@Icons.Material.Filled.AddShoppingCart"
+                                           Color="Color.Secondary"
+                                           Size="Size.Small"
+                                           OnClick="() => OpenNhapKhoDialog(context)" />
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudAlert Severity="Severity.Info">Không có sản phẩm nào. Hãy thêm mới!</MudAlert>
+                    </NoRecordsContent>
+                    <LoadingContent>
+                        <MudProgressCircular Indeterminate="true" />
+                    </LoadingContent>
+                </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<Product> products = new();
+    private string? searchText = "";
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+    }
+
+    private async Task SearchProducts()
+    {
+        await LoadProducts();
+    }
+
+    private async Task LoadProducts()
+    {
+        loading = true;
+        StateHasChanged();
+
+        products = await ProductService.GetAllAsync(searchText);
+
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters { ["Product"] = new Product() };
+        var dialog = await DialogService.ShowAsync<ProductDialog>("Thêm Sản Phẩm Mới", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var newProduct = result.Data as Product;
+            if (newProduct != null)
+            {
+                await ProductService.AddAsync(newProduct);
+                await LoadProducts(); 
+                Snackbar.Add("Thêm sản phẩm thành công!", Severity.Success);
+            }
+        }
+    }
+
+    private async Task OpenEditDialog(Product product)
+    {
+        var parameters = new DialogParameters { ["Product"] = product };
+        var dialog = await DialogService.ShowAsync<ProductDialog>("Sửa Sản Phẩm", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var updatedProduct = result.Data as Product;
+            if (updatedProduct != null)
+            {
+                await ProductService.UpdateAsync(updatedProduct);
+                await LoadProducts();  // Reload bảng
+                Snackbar.Add("Cập nhật sản phẩm thành công!", Severity.Success);
+            }
+        }
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = "Bạn có chắc chắn muốn xóa sản phẩm này?",
+            ["ButtonText"] = "Xóa",
+            ["Color"] = Color.Error
+        };
+
+        var dialog = await DialogService.ShowAsync<MessageBoxDialog>("Xác nhận xóa", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            await ProductService.DeleteAsync(id);
+            await LoadProducts();
+            Snackbar.Add("Xóa sản phẩm thành công!", Severity.Success);
+        }
+    }
+
+    private async Task OpenNhapKhoDialog(Product product)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ProductId"] = product.Id,
+            ["TenSanPham"] = product.TenSanPham
+        };
+
+        var dialog = await DialogService.ShowAsync<NhapKhoDialog>("Nhập Kho - " + product.TenSanPham, parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            // Lấy dữ liệu từ dialog trả về
+            var data = result.Data as dynamic;
+            if (data != null)
+            {
+                int productId = data.ProductId;
+                int soLuongNhap = data.SoLuongNhap;
+                decimal giaNhapMoi = data.GiaNhapMoi;
+                string ghiChu = data.GhiChu;
+
+                try
+                {
+                    // Gọi service để thực sự nhập kho
+                    await ProductService.NhapKhoAsync(productId, soLuongNhap, giaNhapMoi, ghiChu);
+                    await LoadProducts();  // Reload bảng để hiển thị tồn kho mới
+                    Snackbar.Add($"Nhập kho thành công! Tồn kho tăng {soLuongNhap} đơn vị.", Severity.Success);
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Lỗi nhập kho: {ex.Message}", Severity.Error);
+                }
+            }
+        }
+    }
+}

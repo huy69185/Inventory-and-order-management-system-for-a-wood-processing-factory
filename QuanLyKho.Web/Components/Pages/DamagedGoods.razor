@@ -1,0 +1,105 @@
+@page "/damaged-goods"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+
+<PageTitle>Xuất Hủy / Hàng Hư</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4" GutterBottom="true">Xuất Hủy / Hàng Hư Hỏng</MudText>
+
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-4">
+            <MudStack Row="true" Align="Align.End" Spacing="2">
+                <MudTextField @bind-Value="searchText"
+                              Label="Tìm theo tên, mã"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Style="width: 260px;" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadProducts">Tìm</MudButton>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Dùng khi hàng hư hỏng, mất mát, hết hạn. Hệ thống sẽ tạo giao dịch xuất kho.
+            </MudText>
+        </MudStack>
+
+        <MudTable T="RowModel" Items="@rows" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Mã SP</MudTh>
+                <MudTh>Tên sản phẩm</MudTh>
+                <MudTh Align="Align.Right">Tồn kho</MudTh>
+                <MudTh Align="Align.Right">Số lượng xuất hủy</MudTh>
+                <MudTh>Ghi chú</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Product.MaSanPham</MudTd>
+                <MudTd>@context.Product.TenSanPham</MudTd>
+                <MudTd Align="Align.Right">@context.Product.SoLuongTon</MudTd>
+                <MudTd Align="Align.Right">
+                    <MudNumericField @bind-Value="context.SoLuongHuy" Min="0" Max="@context.Product.SoLuongTon" Immediate="true" />
+                </MudTd>
+                <MudTd>
+                    <MudTextField @bind-Value="context.LyDo" Variant="Variant.Outlined" Placeholder="Ví dụ: hư hỏng, hết hạn" />
+                </MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" Disabled="@(context.SoLuongHuy <= 0)" OnClick="() => SaveRow(context)">
+                        Xuất hủy
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info">Không có sản phẩm nào.</MudAlert>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Inject] private IProductService ProductService { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private class RowModel
+    {
+        public Product Product { get; set; } = default!;
+        public int SoLuongHuy { get; set; }
+        public string LyDo { get; set; } = "";
+    }
+
+    private List<RowModel> rows = new();
+    private string searchText = "";
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync() => await LoadProducts();
+
+    private async Task LoadProducts()
+    {
+        loading = true;
+        StateHasChanged();
+        var products = await ProductService.GetAllAsync(searchText);
+        rows = products.Select(p => new RowModel
+        {
+            Product = p
+        }).ToList();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveRow(RowModel row)
+    {
+        try
+        {
+            await ProductService.XuatHuyAsync(row.Product.Id, row.SoLuongHuy, row.LyDo);
+            Snackbar.Add("Đã xuất hủy hàng hư hỏng.", Severity.Success);
+            await LoadProducts();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}
+

@@ -1,0 +1,127 @@
+@page "/suppliers"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Components.Pages.Shared
+
+<PageTitle>Nhà Cung Cấp</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4" GutterBottom="true">Quản Lý Nhà Cung Cấp</MudText>
+
+    <MudPaper Class="pa-4" Elevation="2" Rounded="true">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-4">
+            <MudStack Row="true" Align="Align.End" Spacing="2">
+                <MudTextField @bind-Value="searchText"
+                              Label="Tìm theo tên, mã, SĐT"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Style="width: 280px;"
+                              Class="mt-0" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadSuppliers">Tìm</MudButton>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialog">
+                Thêm Nhà Cung Cấp
+            </MudButton>
+        </MudStack>
+
+        <MudTable T="Supplier" Items="@suppliers" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Mã NCC</MudTh>
+                <MudTh>Tên</MudTh>
+                <MudTh>Điện thoại</MudTh>
+                <MudTh>Địa chỉ</MudTh>
+                <MudTh>Hành động</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mã">@context.MaNhaCungCap</MudTd>
+                <MudTd DataLabel="Tên">@context.TenNhaCungCap</MudTd>
+                <MudTd DataLabel="Điện thoại">@context.DienThoai</MudTd>
+                <MudTd DataLabel="Địa chỉ">@(context.DiaChi?.Length > 30 ? context.DiaChi[..30] + "…" : context.DiaChi)</MudTd>
+                <MudTd DataLabel="Hành động">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="() => OpenEditDialog(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => DeleteSupplier(context)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info">Chưa có nhà cung cấp. Nhấn "Thêm Nhà Cung Cấp" để tạo mới.</MudAlert>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Inject] private ISupplierService SupplierService { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private List<Supplier> suppliers = new();
+    private string searchText = "";
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync() => await LoadSuppliers();
+
+    private async Task LoadSuppliers()
+    {
+        loading = true;
+        StateHasChanged();
+        suppliers = await SupplierService.GetAllAsync(searchText);
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters { ["Supplier"] = new Supplier() };
+        var dialog = await DialogService.ShowAsync<SupplierDialog>("Thêm Nhà Cung Cấp", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Supplier newC)
+        {
+            await SupplierService.AddAsync(newC);
+            await LoadSuppliers();
+            Snackbar.Add("Đã thêm nhà cung cấp.", Severity.Success);
+        }
+    }
+
+    private async Task OpenEditDialog(Supplier supplier)
+    {
+        var parameters = new DialogParameters { ["Supplier"] = new Supplier
+        {
+            Id = supplier.Id,
+            MaNhaCungCap = supplier.MaNhaCungCap,
+            TenNhaCungCap = supplier.TenNhaCungCap,
+            DienThoai = supplier.DienThoai,
+            DiaChi = supplier.DiaChi,
+            Email = supplier.Email,
+            GhiChu = supplier.GhiChu
+        } };
+        var dialog = await DialogService.ShowAsync<SupplierDialog>("Sửa Nhà Cung Cấp", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Supplier updated)
+        {
+            await SupplierService.UpdateAsync(updated);
+            await LoadSuppliers();
+            Snackbar.Add("Đã cập nhật nhà cung cấp.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteSupplier(Supplier supplier)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Xóa nhà cung cấp \"{supplier.TenNhaCungCap}\"?",
+            ["ButtonText"] = "Xóa",
+            ["Color"] = Color.Error
+        };
+        var dialog = await DialogService.ShowAsync<MessageBoxDialog>("Xác nhận", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        await SupplierService.DeleteAsync(supplier.Id);
+        await LoadSuppliers();
+        Snackbar.Add("Đã xóa nhà cung cấp.", Severity.Success);
+    }
+}
+

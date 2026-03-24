@@ -1,0 +1,126 @@
+@page "/customers"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Components.Pages.Shared
+
+<PageTitle>Khách Hàng</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4" GutterBottom="true">Quản Lý Khách Hàng</MudText>
+
+    <MudPaper Class="pa-4" Elevation="2" Rounded="true">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-4">
+            <MudStack Row="true" Align="Align.End" Spacing="2">
+                <MudTextField @bind-Value="searchText"
+                              Label="Tìm theo tên, mã, SĐT"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Style="width: 280px;"
+                              Class="mt-0" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="LoadCustomers">Tìm</MudButton>
+            </MudStack>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialog">
+                Thêm Khách Hàng
+            </MudButton>
+        </MudStack>
+
+        <MudTable T="Customer" Items="@customers" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Mã KH</MudTh>
+                <MudTh>Tên</MudTh>
+                <MudTh>Điện thoại</MudTh>
+                <MudTh>Địa chỉ</MudTh>
+                <MudTh>Hành động</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Mã">@context.MaKhachHang</MudTd>
+                <MudTd DataLabel="Tên">@context.TenKhachHang</MudTd>
+                <MudTd DataLabel="Điện thoại">@context.DienThoai</MudTd>
+                <MudTd DataLabel="Địa chỉ">@(context.DiaChi?.Length > 30 ? context.DiaChi[..30] + "…" : context.DiaChi)</MudTd>
+                <MudTd DataLabel="Hành động">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="() => OpenEditDialog(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => DeleteCustomer(context)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info">Chưa có khách hàng. Nhấn "Thêm Khách Hàng" để tạo mới.</MudAlert>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Inject] private ICustomerService CustomerService { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private List<Customer> customers = new();
+    private string searchText = "";
+    private bool loading = false;
+
+    protected override async Task OnInitializedAsync() => await LoadCustomers();
+
+    private async Task LoadCustomers()
+    {
+        loading = true;
+        StateHasChanged();
+        customers = await CustomerService.GetAllAsync(searchText);
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenAddDialog()
+    {
+        var parameters = new DialogParameters { ["Customer"] = new Customer() };
+        var dialog = await DialogService.ShowAsync<CustomerDialog>("Thêm Khách Hàng", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Customer newC)
+        {
+            await CustomerService.AddAsync(newC);
+            await LoadCustomers();
+            Snackbar.Add("Đã thêm khách hàng.", Severity.Success);
+        }
+    }
+
+    private async Task OpenEditDialog(Customer customer)
+    {
+        var parameters = new DialogParameters { ["Customer"] = new Customer
+        {
+            Id = customer.Id,
+            MaKhachHang = customer.MaKhachHang,
+            TenKhachHang = customer.TenKhachHang,
+            DienThoai = customer.DienThoai,
+            DiaChi = customer.DiaChi,
+            Email = customer.Email,
+            GhiChu = customer.GhiChu
+        } };
+        var dialog = await DialogService.ShowAsync<CustomerDialog>("Sửa Khách Hàng", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Customer updated)
+        {
+            await CustomerService.UpdateAsync(updated);
+            await LoadCustomers();
+            Snackbar.Add("Đã cập nhật khách hàng.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteCustomer(Customer customer)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Xóa khách hàng \"{customer.TenKhachHang}\"?",
+            ["ButtonText"] = "Xóa",
+            ["Color"] = Color.Error
+        };
+        var dialog = await DialogService.ShowAsync<MessageBoxDialog>("Xác nhận", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        await CustomerService.DeleteAsync(customer.Id);
+        await LoadCustomers();
+        Snackbar.Add("Đã xóa khách hàng.", Severity.Success);
+    }
+}

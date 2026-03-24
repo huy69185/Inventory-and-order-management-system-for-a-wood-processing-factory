@@ -1,0 +1,41 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>Nhà Cung Cấp</TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Supplier.MaNhaCungCap" Label="Mã NCC" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Supplier.TenNhaCungCap" Label="Tên Nhà Cung Cấp" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Supplier.DienThoai" Label="Điện thoại" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="Supplier.Email" Label="Email" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Supplier.DiaChi" Label="Địa chỉ" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Supplier.GhiChu" Label="Ghi chú" Variant="Variant.Outlined" Lines="3" />
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Lưu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Supplier Supplier { get; set; } = new();
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Supplier));
+    private void Cancel() => MudDialog.Cancel();
+}
+

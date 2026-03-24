@@ -1,0 +1,147 @@
+@page "/completed-orders"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Services
+
+<PageTitle>Hóa Đơn (Đơn Hoàn Thành)</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4" GutterBottom="true">Đơn Hàng Đã Hoàn Thành</MudText>
+
+    <MudPaper Class="pa-4" Elevation="2" Rounded="true">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-4">
+            <MudStack Row="true" Align="Align.End" Spacing="2">
+                <MudTextField @bind-Value="searchText"
+                              Label="Tìm theo số đơn, khách hàng"
+                              Variant="Variant.Outlined"
+                              Immediate="true"
+                              Style="width: 280px;" />
+                <MudDateRangePicker @bind-DateRange="dateRange"
+                                    Label="Khoảng ngày"
+                                    Variant="Variant.Outlined"
+                                    DateFormat="dd/MM/yyyy"
+                                    Style="width: 260px;" />
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           StartIcon="@Icons.Material.Filled.Refresh"
+                           OnClick="ResetFilters">
+                    Xóa lọc
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <MudTable T="SalesOrder" Items="@FilteredOrders" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loading">
+            <HeaderContent>
+                <MudTh>Số đơn</MudTh>
+                <MudTh>Ngày</MudTh>
+                <MudTh>Khách hàng</MudTh>
+                <MudTh Align="Align.Right">Tổng tiền</MudTh>
+                <MudTh Align="Align.Right">Đã trả</MudTh>
+                <MudTh Align="Align.Right">Còn lại</MudTh>
+                <MudTh Align="Align.Right">Tiền vốn (ước)</MudTh>
+                <MudTh Align="Align.Right">Lợi nhuận (ước)</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.SoDonHang</MudTd>
+                <MudTd>@context.NgayDat.ToString("dd/MM/yyyy")</MudTd>
+                <MudTd>@context.TenKhachHang</MudTd>
+                <MudTd Align="Align.Right">@context.TongTien.ToString("N0") ₫</MudTd>
+                <MudTd Align="Align.Right">@context.TienDaTraTruoc.ToString("N0") ₫</MudTd>
+                <MudTd Align="Align.Right">@context.ConLai.ToString("N0") ₫</MudTd>
+                <MudTd Align="Align.Right">@GetEstimatedCost(context).ToString("N0") ₫</MudTd>
+                <MudTd Align="Align.Right">@GetEstimatedProfit(context).ToString("N0") ₫</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Primary" Size="Size.Small" OnClick="() => ExportPdf(context)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info">Chưa có đơn hoàn thành.</MudAlert>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Inject] private ISalesOrderService SalesOrderService { get; set; } = default!;
+    [Inject] private ICompanySettingService CompanySettingService { get; set; } = default!;
+    [Inject] private IWebHostEnvironment WebHost { get; set; } = default!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private List<SalesOrder> orders = new();
+    private string searchText = "";
+    private DateRange dateRange = new();
+    private bool loading = false;
+
+    private IEnumerable<SalesOrder> FilteredOrders =>
+        orders.Where(o =>
+            (string.IsNullOrWhiteSpace(searchText)
+             || (o.SoDonHang?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false)
+             || (o.TenKhachHang?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false))
+            && (dateRange.Start == null && dateRange.End == null
+                || (o.NgayDat.Date >= (dateRange.Start ?? DateTime.MinValue).Date
+                    && o.NgayDat.Date <= (dateRange.End ?? DateTime.MaxValue).Date)));
+
+    protected override async Task OnInitializedAsync() => await LoadOrders();
+
+    private async Task LoadOrders()
+    {
+        loading = true;
+        StateHasChanged();
+        var all = await SalesOrderService.GetAllAsync();
+        orders = all.Where(o => o.TrangThai == SalesOrderStatus.HoanThanh).ToList();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private void ResetFilters()
+    {
+        searchText = "";
+        dateRange = new DateRange();
+    }
+
+    private decimal GetEstimatedCost(SalesOrder order)
+    {
+        // Tạm thời dùng tổng chi phí nguyên liệu = 0 (chưa lưu chi phí chi tiết),
+        // có thể cải tiến sau bằng cách lưu chi phí trong quá trình sản xuất.
+        return 0m;
+    }
+
+    private decimal GetEstimatedProfit(SalesOrder order)
+    {
+        var cost = GetEstimatedCost(order);
+        return order.TongTien - cost;
+    }
+
+    private async Task ExportPdf(SalesOrder order)
+    {
+        try
+        {
+            var full = await SalesOrderService.GetByIdAsync(order.Id);
+            if (full == null) return;
+            var company = await CompanySettingService.GetAsync();
+
+            byte[]? logo = null;
+            if (!string.IsNullOrWhiteSpace(company.LogoPath))
+            {
+                var path = Path.Combine(WebHost.WebRootPath, company.LogoPath.TrimStart('/', '\\'));
+                if (File.Exists(path)) logo = await File.ReadAllBytesAsync(path);
+            }
+
+            var pdfBytes = SalesOrderPdfService.GeneratePdfBytes(full, company, logo);
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await JSRuntime.InvokeVoidAsync("downloadFile", $"HoaDon_{full.SoDonHang}.pdf", "application/pdf", base64);
+            Snackbar.Add("Đã xuất PDF hóa đơn.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}
+

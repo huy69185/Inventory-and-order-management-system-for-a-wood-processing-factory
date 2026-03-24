@@ -1,0 +1,55 @@
+﻿@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+<MudDialog>
+    <TitleContent>Chọn Sản Phẩm Thêm Vào Hóa Đơn</TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="searchText" Label="Tìm sản phẩm" Variant="Variant.Outlined" Immediate="true" OnKeyUp="Search" />
+
+        <MudTable Items="@filteredProducts" Hover="true">
+            <HeaderContent>
+                <MudTh>Tên SP</MudTh>
+                <MudTh>Tồn Kho</MudTh>
+                <MudTh>Giá Bán</MudTh>
+                <MudTh>Chọn</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.TenSanPham</MudTd>
+                <MudTd>@context.SoLuongTon</MudTd>
+                <MudTd>@context.GiaBan.ToString("N0") ₫</MudTd>
+                <MudTd>
+                    <MudButton Color="Color.Primary" OnClick="() => SelectProduct(context)">Chọn</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] private IProductService ProductService { get; set; } = default!;
+
+    private List<Product> filteredProducts = new();
+    private string searchText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        filteredProducts = await ProductService.GetAllAsync();
+    }
+
+    private async Task Search()
+    {
+        filteredProducts = await ProductService.GetAllAsync(searchText);
+        StateHasChanged();
+    }
+
+    private void SelectProduct(Product product)
+    {
+        MudDialog.Close(DialogResult.Ok(product));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

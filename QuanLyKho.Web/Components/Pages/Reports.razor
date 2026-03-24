@@ -1,0 +1,252 @@
+@page "/reports"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Services
+@inject IProductService ProductService
+@inject ISalesOrderService SalesOrderService
+@inject IStockTransactionService StockTransactionService
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mt-4 mb-4">Báo Cáo & Thống Kê</MudText>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-4">
+        <MudTabPanel Text="Tồn kho hiện tại" Icon="@Icons.Material.Filled.Inventory">
+            <MudPaper Class="pa-4 mt-4" Elevation="1">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Danh sách tồn kho</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Material.Filled.TableChart" OnClick="XuatExcelTonKho">Xuất Excel</MudButton>
+                </MudStack>
+                <MudTable T="Product" Items="@products" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loadingProducts">
+                    <HeaderContent>
+                        <MudTh>Mã SP</MudTh>
+                        <MudTh>Tên sản phẩm</MudTh>
+                        <MudTh>Đơn vị</MudTh>
+                        <MudTh Align="Align.Right">Số lượng tồn</MudTh>
+                        <MudTh Align="Align.Right">Giá trị (ước, giá nhập)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.MaSanPham</MudTd>
+                        <MudTd>@context.TenSanPham</MudTd>
+                        <MudTd>@context.DonVi</MudTd>
+                        <MudTd Align="Align.Right">
+                            <MudChip T="string" Color="@(context.SoLuongTon < (context.SoLuongCanhBao > 0 ? context.SoLuongCanhBao : 10) ? Color.Warning : Color.Success)" Size="Size.Small">@context.SoLuongTon</MudChip>
+                        </MudTd>
+                        <MudTd Align="Align.Right">@((context.SoLuongTon * context.GiaNhap).ToString("N0")) ₫</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudAlert Severity="Severity.Info">Chưa có sản phẩm.</MudAlert></NoRecordsContent>
+                    <LoadingContent><MudProgressCircular Indeterminate="true" /></LoadingContent>
+                </MudTable>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Lịch sử nhập/xuất" Icon="@Icons.Material.Filled.History">
+            <MudPaper Class="pa-4 mt-4" Elevation="1">
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker @bind-Date="filterFrom" Label="Từ ngày" DateFormat="dd/MM/yyyy" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker @bind-Date="filterTo" Label="Đến ngày" DateFormat="dd/MM/yyyy" />
+                    </MudItem>
+                    <MudItem xs="12" sm="4" Class="d-flex align-center">
+                        <MudSelect T="string" @bind-Value="filterLoai" Label="Loại" Variant="Variant.Outlined" Dense="true">
+                            <MudSelectItem Value="@("")">Tất cả</MudSelectItem>
+                            <MudSelectItem Value="@("NhapKho")">Nhập kho</MudSelectItem>
+                            <MudSelectItem Value="@("XuatKho")">Xuất kho</MudSelectItem>
+                        </MudSelect>
+                        <MudButton Color="Color.Primary" Class="ml-2" OnClick="LoadTransactions">Lọc</MudButton>
+                        <MudButton Color="Color.Default" Variant="Variant.Outlined" Class="ml-2" OnClick="ResetTransactionFilters">
+                            Xóa lọc
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+                <MudTable T="StockTransaction" Items="@transactions" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm" Loading="@loadingTx">
+                    <HeaderContent>
+                        <MudTh>Ngày</MudTh>
+                        <MudTh>Loại</MudTh>
+                        <MudTh>Sản phẩm</MudTh>
+                        <MudTh Align="Align.Right">Số lượng</MudTh>
+                        <MudTh Align="Align.Right">Đơn giá</MudTh>
+                        <MudTh>Ghi chú</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.NgayGiaoDich.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Color="@(context.LoaiGiaoDich == TransactionType.NhapKho ? Color.Success : Color.Info)" Size="Size.Small">
+                                @(context.LoaiGiaoDich == TransactionType.NhapKho ? "Nhập" : "Xuất")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd>@(context.Product?.TenSanPham ?? "-")</MudTd>
+                        <MudTd Align="Align.Right">@context.SoLuong</MudTd>
+                        <MudTd Align="Align.Right">@context.Gia.ToString("N0") ₫</MudTd>
+                        <MudTd>@context.GhiChu</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudAlert Severity="Severity.Info">Không có giao dịch trong khoảng thời gian đã chọn.</MudAlert></NoRecordsContent>
+                    <LoadingContent><MudProgressCircular Indeterminate="true" /></LoadingContent>
+                </MudTable>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Công nợ" Icon="@Icons.Material.Filled.MoneyOff">
+            <MudPaper Class="pa-4 mt-4" Elevation="1">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Đơn hàng còn công nợ (chưa thanh toán đủ)</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.TableChart" OnClick="XuatExcelCongNo" Disabled="@(ordersCongNo.Count == 0)">Xuất Excel</MudButton>
+                </MudStack>
+                <MudTable T="SalesOrder" Items="@ordersCongNo" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true" Breakpoint="Breakpoint.Sm">
+                    <HeaderContent>
+                        <MudTh>Số đơn</MudTh>
+                        <MudTh>Ngày</MudTh>
+                        <MudTh>Khách hàng</MudTh>
+                        <MudTh>Điện thoại</MudTh>
+                        <MudTh Align="Align.Right">Tổng đơn</MudTh>
+                        <MudTh Align="Align.Right">Đã trả</MudTh>
+                        <MudTh Align="Align.Right">Còn nợ</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.SoDonHang</MudTd>
+                        <MudTd>@context.NgayDat.ToString("dd/MM/yyyy")</MudTd>
+                        <MudTd>@context.TenKhachHang</MudTd>
+                        <MudTd>@context.DienThoai</MudTd>
+                        <MudTd Align="Align.Right">@context.TongTien.ToString("N0") ₫</MudTd>
+                        <MudTd Align="Align.Right">@context.TienDaTraTruoc.ToString("N0") ₫</MudTd>
+                        <MudTd Align="Align.Right"><MudChip T="string" Color="Color.Warning" Size="Size.Small">@context.ConLai.ToString("N0") ₫</MudChip></MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudAlert Severity="Severity.Success">Không có công nợ.</MudAlert></NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Doanh thu" Icon="@Icons.Material.Filled.AttachMoney">
+            <MudPaper Class="pa-4 mt-4" Elevation="1">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" Align="Align.Center" Class="mb-3">
+                    <MudText Typo="Typo.h6">Tổng quan doanh thu</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Success" StartIcon="@Icons.Material.Filled.TableChart" OnClick="XuatExcelDoanhThu">Xuất Excel</MudButton>
+                </MudStack>
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <MudCard Outlined="true" Class="pa-4">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Tổng doanh thu (tất cả đơn)</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Primary">@totalRevenue.ToString("N0") ₫</MudText>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudCard Outlined="true" Class="pa-4">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Số đơn hàng</MudText>
+                            <MudText Typo="Typo.h5">@allOrders.Count</MudText>
+                        </MudCard>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudCard Outlined="true" Class="pa-4">
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Doanh thu tháng này</MudText>
+                            <MudText Typo="Typo.h5" Color="Color.Success">@revenueThisMonth.ToString("N0") ₫</MudText>
+                        </MudCard>
+                    </MudItem>
+                </MudGrid>
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">Chi tiết theo tháng</MudText>
+                <MudTable T="(string Key, int Count, decimal Sum)" Items="@revenueByMonth" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true">
+                    <HeaderContent>
+                    <MudTh>Tháng/Năm</MudTh>
+                    <MudTh Align="Align.Right">Số đơn</MudTh>
+                        <MudTh Align="Align.Right">Doanh thu</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Key</MudTd>
+                        <MudTd Align="Align.Right">@context.Count</MudTd>
+                        <MudTd Align="Align.Right">@context.Sum.ToString("N0") ₫</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent><MudAlert Severity="Severity.Info">Chưa có hóa đơn.</MudAlert></NoRecordsContent>
+                </MudTable>
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private List<Product> products = new();
+    private List<StockTransaction> transactions = new();
+    private List<SalesOrder> allOrders = new();
+    private bool loadingProducts = true;
+    private bool loadingTx = false;
+    private DateTime? filterFrom;
+    private DateTime? filterTo;
+    private string? filterLoai = "";
+
+    private List<SalesOrder> ordersCongNo => allOrders.Where(o => o.ConLai > 0).OrderByDescending(o => o.NgayDat).ToList();
+    private decimal totalRevenue => allOrders.Sum(o => o.TongTien);
+    private decimal revenueThisMonth => allOrders.Where(o => o.NgayDat.Year == DateTime.Now.Year && o.NgayDat.Month == DateTime.Now.Month).Sum(o => o.TongTien);
+    private List<(string Key, int Count, decimal Sum)> revenueByMonth => allOrders
+        .GroupBy(o => $"{o.NgayDat.Month:D2}/{o.NgayDat.Year}")
+        .OrderByDescending(g => g.Max(o => o.NgayDat))
+        .Select(g => (g.Key, g.Count(), g.Sum(x => x.TongTien)))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        filterFrom = DateTime.Now.AddMonths(-1);
+        filterTo = DateTime.Now;
+        await Task.WhenAll(LoadProducts(), LoadOrders(), LoadTransactions());
+    }
+
+    private async Task LoadProducts()
+    {
+        loadingProducts = true;
+        StateHasChanged();
+        products = await ProductService.GetAllAsync();
+        loadingProducts = false;
+        StateHasChanged();
+    }
+
+    private async Task LoadOrders()
+    {
+        allOrders = await SalesOrderService.GetAllAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadTransactions()
+    {
+        loadingTx = true;
+        StateHasChanged();
+        TransactionType? loai = null;
+        if (filterLoai == "NhapKho") loai = TransactionType.NhapKho;
+        if (filterLoai == "XuatKho") loai = TransactionType.XuatKho;
+        transactions = await StockTransactionService.GetAllAsync(filterFrom, filterTo, null, loai);
+        loadingTx = false;
+        StateHasChanged();
+    }
+
+    private async Task ResetTransactionFilters()
+    {
+        filterFrom = DateTime.Now.AddMonths(-1);
+        filterTo = DateTime.Now;
+        filterLoai = "";
+        await LoadTransactions();
+    }
+
+    private async Task XuatExcelTonKho()
+    {
+        var bytes = ExcelExportService.ExportTonKho(products);
+        var base64 = Convert.ToBase64String(bytes);
+        await JSRuntime.InvokeVoidAsync("downloadFile", $"TonKho_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", base64);
+        Snackbar.Add("Đã tải file Excel.", Severity.Success);
+    }
+
+    private async Task XuatExcelDoanhThu()
+    {
+        var bytes = ExcelExportService.ExportDoanhThu(allOrders);
+        var base64 = Convert.ToBase64String(bytes);
+        await JSRuntime.InvokeVoidAsync("downloadFile", $"DoanhThu_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", base64);
+        Snackbar.Add("Đã tải file Excel.", Severity.Success);
+    }
+
+    private async Task XuatExcelCongNo()
+    {
+        var bytes = ExcelExportService.ExportCongNo(ordersCongNo);
+        var base64 = Convert.ToBase64String(bytes);
+        await JSRuntime.InvokeVoidAsync("downloadFile", $"CongNo_{DateTime.Now:yyyyMMdd_HHmm}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", base64);
+        Snackbar.Add("Đã tải file Excel.", Severity.Success);
+    }
+}

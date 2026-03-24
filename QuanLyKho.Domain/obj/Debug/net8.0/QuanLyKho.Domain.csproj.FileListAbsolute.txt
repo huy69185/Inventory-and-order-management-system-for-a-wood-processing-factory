@@ -1,0 +1,22 @@
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\bin\Debug\net8.0\QuanLyKho.Domain.deps.json
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\bin\Debug\net8.0\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\bin\Debug\net8.0\QuanLyKho.Domain.pdb
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.AssemblyInfoInputs.cache
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.AssemblyInfo.cs
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.csproj.CoreCompileInputs.cache
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\refint\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.pdb
+C:\Users\huyh6\OneDrive\Desktop\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\ref\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\bin\Debug\net8.0\QuanLyKho.Domain.deps.json
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\bin\Debug\net8.0\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\bin\Debug\net8.0\QuanLyKho.Domain.pdb
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.AssemblyInfoInputs.cache
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.AssemblyInfo.cs
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.csproj.CoreCompileInputs.cache
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\refint\QuanLyKho.Domain.dll
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\QuanLyKho.Domain.pdb
+C:\Users\huyh6\OneDrive\Desktop\On phong van\QuanLyKhoSolution\QuanLyKho.Domain\obj\Debug\net8.0\ref\QuanLyKho.Domain.dll

@@ -1,0 +1,54 @@
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>Chọn Khách Hàng</TitleContent>
+    <DialogContent>
+        <div class="d-flex gap-2 align-center">
+            <MudTextField @bind-Value="searchText" Label="Tìm theo tên, mã, SĐT" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadCustomers">Tìm</MudButton>
+        </div>
+        <MudTable T="Customer" Items="@customers" Hover="true" Dense="true" Class="mt-3" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Mã</MudTh>
+                <MudTh>Tên</MudTh>
+                <MudTh>Điện thoại</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.MaKhachHang</MudTd>
+                <MudTd>@context.TenKhachHang</MudTd>
+                <MudTd>@context.DienThoai</MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => Select(context)">Chọn</MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">Không có khách hàng. Thêm mới trong menu Quản lý khách hàng.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] private ICustomerService CustomerService { get; set; } = default!;
+
+    private List<Customer> customers = new();
+    private string searchText = "";
+
+    protected override async Task OnInitializedAsync() => await LoadCustomers();
+
+    private async Task LoadCustomers()
+    {
+        customers = await CustomerService.GetAllAsync(searchText);
+        StateHasChanged();
+    }
+
+    private void Select(Customer c) => MudDialog.Close(DialogResult.Ok(c));
+    private void Cancel() => MudDialog.Cancel();
+}

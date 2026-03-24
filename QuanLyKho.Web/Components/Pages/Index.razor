@@ -1,0 +1,141 @@
+@page "/"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@inject IProductService ProductService
+@inject ICompanySettingService CompanySettingService
+@inject ISalesOrderService SalesOrderService
+
+<MudGrid Spacing="3">
+    <MudItem xs="12">
+        <MudPaper Class="pa-4" Elevation="0" Style="border-left: 4px solid var(--mud-palette-primary);">
+            <MudText Typo="Typo.h5" GutterBottom="true">Tổng quan</MudText>
+            <MudText Typo="Typo.body1" Color="Color.Secondary">
+                <strong>@company.TenCongTy</strong> · MST: @company.MaSoThue
+            </MudText>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="fill-height">
+            <MudCardContent Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Tổng sản phẩm</MudText>
+                    <MudText Typo="Typo.h4">@totalProducts</MudText>
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="fill-height">
+            <MudCardContent Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Sắp hết hàng</MudText>
+                    <MudText Typo="Typo.h4">@lowStockProducts.Count</MudText>
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="fill-height">
+            <MudCardContent Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Tổng đơn hàng</MudText>
+                    <MudText Typo="Typo.h4">@totalOrders</MudText>
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="fill-height">
+            <MudCardContent Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Doanh thu (tất cả)</MudText>
+                    <MudText Typo="Typo.h6">@totalRevenue.ToString("N0") ₫</MudText>
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudCard Elevation="2" Class="fill-height">
+            <MudCardContent Class="d-flex align-center">
+                <MudIcon Icon="@Icons.Material.Filled.MoneyOff" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                <div>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Đơn hàng chưa hoàn thành</MudText>
+                    <MudText Typo="Typo.h6">@openOrders</MudText>
+                </div>
+            </MudCardContent>
+        </MudCard>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" GutterBottom="true">Sản phẩm sắp hết hàng (dưới ngưỡng cảnh báo)</MudText>
+            @if (lowStockProducts.Any())
+            {
+                <MudList T="Product" Dense="true">
+                    @foreach (var p in lowStockProducts)
+                    {
+                        <MudListItem T="Product" Href="/products">
+                            <MudText>@p.TenSanPham</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Class="ml-2">@p.SoLuongTon @p.DonVi</MudChip>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">Không có sản phẩm nào sắp hết hàng.</MudAlert>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" GutterBottom="true">Thao tác nhanh</MudText>
+            <MudStack Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/products" StartIcon="@Icons.Material.Filled.Inventory" FullWidth="true">
+                    Quản lý sản phẩm
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Href="/sales-orders" StartIcon="@Icons.Material.Filled.Assignment" FullWidth="true">
+                    Tạo đơn đặt hàng mới
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Href="/sales-orders" StartIcon="@Icons.Material.Filled.ListAlt" FullWidth="true">
+                    Xem danh sách đơn hàng
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Href="/customers" StartIcon="@Icons.Material.Filled.People" FullWidth="true">
+                    Quản lý khách hàng
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Href="/reports" StartIcon="@Icons.Material.Filled.BarChart" FullWidth="true">
+                    Báo cáo & thống kê
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private CompanySetting company = new();
+    private List<Product> lowStockProducts = new();
+    private int totalProducts;
+    private int totalOrders;
+    private int openOrders;
+    private decimal totalRevenue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        company = await CompanySettingService.GetAsync();
+        lowStockProducts = await ProductService.GetLowStockAsync(10);
+        var allProducts = await ProductService.GetAllAsync();
+        totalProducts = allProducts.Count;
+
+        var orders = await SalesOrderService.GetAllAsync();
+        totalOrders = orders.Count;
+        openOrders = orders.Count(o => o.TrangThai != SalesOrderStatus.HoanThanh && o.TrangThai != SalesOrderStatus.DaHuy);
+        totalRevenue = orders.Sum(o => o.ChiTiet?.Sum(i => i.SoLuong * i.DonGia) ?? 0);
+    }
+}

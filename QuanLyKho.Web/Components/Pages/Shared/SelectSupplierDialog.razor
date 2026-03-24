@@ -1,0 +1,55 @@
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>Chọn Nhà Cung Cấp</TitleContent>
+    <DialogContent>
+        <div class="d-flex gap-2 align-center">
+            <MudTextField @bind-Value="searchText" Label="Tìm theo tên, mã, SĐT" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadSuppliers">Tìm</MudButton>
+        </div>
+        <MudTable T="Supplier" Items="@suppliers" Hover="true" Dense="true" Class="mt-3" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Mã</MudTh>
+                <MudTh>Tên</MudTh>
+                <MudTh>Điện thoại</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.MaNhaCungCap</MudTd>
+                <MudTd>@context.TenNhaCungCap</MudTd>
+                <MudTd>@context.DienThoai</MudTd>
+                <MudTd>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="() => Select(context)">Chọn</MudButton>
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">Không có nhà cung cấp. Thêm mới trong menu Quản lý nhà cung cấp.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Inject] private ISupplierService SupplierService { get; set; } = default!;
+
+    private List<Supplier> suppliers = new();
+    private string searchText = "";
+
+    protected override async Task OnInitializedAsync() => await LoadSuppliers();
+
+    private async Task LoadSuppliers()
+    {
+        suppliers = await SupplierService.GetAllAsync(searchText);
+        StateHasChanged();
+    }
+
+    private void Select(Supplier c) => MudDialog.Close(DialogResult.Ok(c));
+    private void Cancel() => MudDialog.Cancel();
+}
+

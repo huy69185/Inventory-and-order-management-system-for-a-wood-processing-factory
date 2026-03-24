@@ -1,0 +1,166 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Web.Components.Pages.Shared
+
+<MudDialog MaxWidth="MaxWidth.ExtraLarge">
+    <TitleContent>@(Order.Id == 0 ? "Thêm Đơn Đặt Hàng" : "Sửa Đơn Đặt Hàng")</TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12">
+                <MudStack Row="true" Spacing="1">
+                    <MudTextField @bind-Value="Order.TenKhachHang"
+                                  Label="Khách hàng"
+                                  Variant="Variant.Outlined"
+                                  Class="flex-grow-1" />
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Search"
+                               OnClick="OpenSelectCustomer">
+                        Chọn KH
+                    </MudButton>
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="Order.DienThoai"
+                              Label="Điện thoại"
+                              Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudDatePicker @bind-Date="NgayDat"
+                               Label="Ngày đặt"
+                               DateFormat="dd/MM/yyyy"
+                               Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudNumericField T="decimal"
+                                 @bind-Value="Order.TienDaTraTruoc"
+                                 Label="Tiền đã trả trước"
+                                 Variant="Variant.Outlined"
+                                 Min="0"
+                                 Adornment="Adornment.End"
+                                 AdornmentText="₫" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Order.DiaChiGiaoHang"
+                              Label="Địa chỉ giao hàng"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Order.GhiChu"
+                              Label="Ghi chú chung"
+                              Variant="Variant.Outlined"
+                              Lines="2" />
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider Class="my-3" />
+        <MudText Typo="Typo.subtitle1">Chi tiết đơn hàng</MudText>
+
+        <MudTable T="SalesOrderItem" Items="@Items" Dense="true" Hover="true" Style="min-width: 900px;">
+            <HeaderContent>
+                <MudTh>Mô tả sản phẩm</MudTh>
+                <MudTh>Số lượng</MudTh>
+                <MudTh>Đơn vị</MudTh>
+                <MudTh>Đơn giá</MudTh>
+                <MudTh>Thành tiền</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd Style="min-width: 260px;">
+                    <MudTextField @bind-Value="context.MoTaSanPham"
+                                  Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd Style="min-width: 110px;">
+                    <MudNumericField T="int"
+                                     @bind-Value="context.SoLuong"
+                                     Min="1"
+                                     Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd Style="min-width: 120px;">
+                    <MudTextField @bind-Value="context.DonVi"
+                                  Variant="Variant.Outlined" />
+                </MudTd>
+                <MudTd Style="min-width: 150px;">
+                    <MudNumericField T="decimal"
+                                     @bind-Value="context.DonGia"
+                                     Min="0"
+                                     Variant="Variant.Outlined"
+                                     Adornment="Adornment.End"
+                                     AdornmentText="₫" />
+                </MudTd>
+                <MudTd>@((context.SoLuong * context.DonGia).ToString("N0")) ₫</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveItem(context))" />
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTr>
+                    <MudTd ColSpan="6">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddItem">
+                            Thêm dòng
+                        </MudButton>
+                    </MudTd>
+                </MudTr>
+            </FooterContent>
+        </MudTable>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-2" Align="Align.Right">
+            Tổng tiền: <b>@((Items?.Sum(i => i.SoLuong * i.DonGia) ?? 0).ToString("N0")) ₫</b>
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Lưu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public SalesOrder Order { get; set; } = new();
+    [Parameter] public List<SalesOrderItem> Items { get; set; } = new();
+
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private DateTime? NgayDat
+    {
+        get => Order.NgayDat;
+        set => Order.NgayDat = value ?? DateTime.Now;
+    }
+
+    private void AddItem()
+    {
+        Items.Add(new SalesOrderItem
+        {
+            MoTaSanPham = "",
+            SoLuong = 1,
+            DonVi = "",
+            DonGia = 0
+        });
+    }
+
+    private void RemoveItem(SalesOrderItem item)
+    {
+        Items.Remove(item);
+    }
+
+    private async Task OpenSelectCustomer()
+    {
+        var dialog = await DialogService.ShowAsync<SelectCustomerDialog>("Chọn khách hàng");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Customer c)
+        {
+            Order.CustomerId = c.Id;
+            Order.TenKhachHang = c.TenKhachHang ?? "";
+            Order.DienThoai = c.DienThoai ?? "";
+            if (string.IsNullOrWhiteSpace(Order.DiaChiGiaoHang))
+                Order.DiaChiGiaoHang = c.DiaChi ?? "";
+        }
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok((Order, Items)));
+
+    private void Cancel() => MudDialog.Cancel();
+}
+

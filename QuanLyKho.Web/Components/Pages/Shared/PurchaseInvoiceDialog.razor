@@ -1,0 +1,46 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>@(Item.Id == 0 ? "Thêm hóa đơn mua" : "Sửa hóa đơn mua")</TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="Item.SoHoaDon" Label="Số hóa đơn" Variant="Variant.Outlined" Class="mt-2" />
+            <MudDatePicker @bind-Date="NgayHoaDon" Label="Ngày hóa đơn" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Class="mt-2" />
+            <MudStack Row="true" Spacing="1" Class="mt-2">
+                <MudTextField @bind-Value="Item.NhaCungCap" Label="Nhà cung cấp" Variant="Variant.Outlined" Class="flex-grow-1" />
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="OpenSelectSupplier">Chọn</MudButton>
+            </MudStack>
+            <MudNumericField @bind-Value="Item.TienHangChuaThue" Label="Tiền hàng chưa thuế (₫)" Variant="Variant.Outlined" Min="0" Class="mt-2" />
+            <MudNumericField @bind-Value="Item.ThueGTGT" Label="Thuế suất GTGT (%)" Variant="Variant.Outlined" Min="0" Max="100" Class="mt-2" />
+            <MudNumericField @bind-Value="Item.TienThueGTGT" Label="Tiền thuế GTGT (₫)" Variant="Variant.Outlined" Min="0" Class="mt-2" />
+            <MudTextField @bind-Value="Item.GhiChu" Label="Ghi chú" Variant="Variant.Outlined" Class="mt-2" Lines="2" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Lưu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public PurchaseInvoice Item { get; set; } = new();
+
+    private DateTime? NgayHoaDon { get => Item.NgayHoaDon; set => Item.NgayHoaDon = value ?? DateTime.Now; }
+
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
+    private async Task OpenSelectSupplier()
+    {
+        var dialog = await DialogService.ShowAsync<SelectSupplierDialog>("Chọn Nhà Cung Cấp");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Supplier s)
+        {
+            Item.NhaCungCap = s.TenNhaCungCap;
+        }
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Item));
+    private void Cancel() => MudDialog.Cancel();
+}

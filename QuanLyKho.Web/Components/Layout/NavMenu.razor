@@ -1,0 +1,60 @@
+@using MudBlazor
+<MudNavMenu Bordered="true" Margin="Margin.Dense" Rounded="true">
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">
+        Trang Chủ
+    </MudNavLink>
+
+    <MudNavLink Href="/products" Icon="@Icons.Material.Filled.Inventory">
+        Quản Lý Sản Phẩm
+    </MudNavLink>
+
+    <MudNavLink Href="/customers" Icon="@Icons.Material.Filled.People">
+        Quản Lý Khách Hàng
+    </MudNavLink>
+
+    <MudNavLink Href="/suppliers" Icon="@Icons.Material.Filled.LocalShipping">
+        Quản Lý Nhà Cung Cấp
+    </MudNavLink>
+
+    <MudNavLink Href="/sales-orders" Icon="@Icons.Material.Filled.Assignment">
+        Đơn Đặt Hàng
+    </MudNavLink>
+
+    <MudNavLink Href="/completed-orders" Icon="@Icons.Material.Filled.ReceiptLong">
+        Hóa Đơn (Đơn Hoàn Thành)
+    </MudNavLink>
+
+    <MudNavLink Href="/reports" Icon="@Icons.Material.Filled.BarChart">
+        Báo Cáo & Thống Kê
+    </MudNavLink>
+
+    <MudNavLink Href="/wood-production" Icon="@Icons.Material.Filled.Handyman">
+        Sản Xuất Ván Ép
+    </MudNavLink>
+
+    <MudNavLink Href="/inventory-adjustment" Icon="@Icons.Material.Filled.Inventory2">
+        Kiểm Kê & Điều Chỉnh
+    </MudNavLink>
+
+    <MudNavLink Href="/damaged-goods" Icon="@Icons.Material.Filled.DeleteForever">
+        Xuất Hủy / Hàng Hư
+    </MudNavLink>
+
+    <MudNavLink Href="/tax-report" Icon="@Icons.Material.Filled.Calculate">
+        Kê Khai Thuế
+    </MudNavLink>
+
+    <MudNavLink Href="/setup-company" Icon="@Icons.Material.Filled.Settings">
+        Cài Đặt Doanh Nghiệp
+    </MudNavLink>
+</MudNavMenu>
+
+<style>
+    .mud-nav-link {
+        color: var(--mud-palette-text-primary);
+    }
+    .mud-nav-link-active {
+        background-color: var(--mud-palette-primary-lighten);
+        color: white !important;
+    }
+</style>

@@ -1,0 +1,141 @@
+@page "/invoice-list"
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Web.Components.Pages.Shared
+@using QuanLyKho.Web.Services
+@inject IInvoiceService InvoiceService
+@inject ICompanySettingService CompanySettingService
+@inject IWebHostEnvironment WebHost
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mt-4 mb-4">Danh Sách Hóa Đơn</MudText>
+
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudTable T="Invoice" Items="@invoices" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@loading" Dense="true" Striped="true" Bordered="true" StickyHeader="true">
+            <HeaderContent>
+                <MudTh>Số HĐ</MudTh>
+                <MudTh>Ngày lập</MudTh>
+                <MudTh>Khách hàng</MudTh>
+                <MudTh>Điện thoại</MudTh>
+                <MudTh Align="Align.Right">Tổng thanh toán</MudTh>
+                <MudTh Align="Align.Right">Còn nợ</MudTh>
+                <MudTh>Hành động</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Số HĐ">@context.SoHoaDon</MudTd>
+                <MudTd DataLabel="Ngày">@context.NgayLap.ToString("dd/MM/yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Khách hàng">@context.KhachHang</MudTd>
+                <MudTd DataLabel="Điện thoại">@context.DienThoaiKH</MudTd>
+                <MudTd DataLabel="Tổng" Align="Align.Right">@context.TongThanhToan.ToString("N0") ₫</MudTd>
+                <MudTd DataLabel="Còn nợ" Align="Align.Right">
+                    @if (context.ConNo > 0)
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">@context.ConNo.ToString("N0") ₫</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Đã thu</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Hành động">
+                    <MudIconButton Icon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Primary" Size="Size.Small" OnClick="() => XuatPDF(context.Id)" />
+                    @if (context.ConNo > 0)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Payment" Color="Color.Warning" Size="Size.Small" OnClick="() => OpenThuTien(context)" />
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="() => DeleteInvoice(context)" />
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudAlert Severity="Severity.Info">Chưa có hóa đơn nào. Vào "Lập & Xuất Hóa Đơn" để tạo mới.</MudAlert>
+            </NoRecordsContent>
+            <LoadingContent>
+                <MudProgressCircular Indeterminate="true" />
+            </LoadingContent>
+        </MudTable>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private List<Invoice> invoices = new();
+    private bool loading = true;
+    private CompanySetting company = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        company = await CompanySettingService.GetAsync();
+        await LoadInvoices();
+    }
+
+    private async Task LoadInvoices()
+    {
+        loading = true;
+        StateHasChanged();
+        invoices = await InvoiceService.GetAllAsync();
+        loading = false;
+        StateHasChanged();
+    }
+
+    private async Task OpenThuTien(Invoice inv)
+    {
+        var parameters = new DialogParameters { ["Invoice"] = inv };
+        var dialog = await DialogService.ShowAsync<PaymentDialog>("Thu tiền", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled || result.Data is not decimal tien) return;
+        try
+        {
+            await InvoiceService.UpdatePaymentAsync(inv.Id, tien);
+            await LoadInvoices();
+            Snackbar.Add("Đã cập nhật tiền đã thu.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add($"Lỗi: {msg}", Severity.Error);
+        }
+    }
+
+    private async Task XuatPDF(int invoiceId)
+    {
+        var inv = await InvoiceService.GetByIdAsync(invoiceId);
+        if (inv == null) return;
+        byte[]? logo = null;
+        if (!string.IsNullOrWhiteSpace(company.LogoPath))
+        {
+            var path = Path.Combine(WebHost.WebRootPath, company.LogoPath.TrimStart('/', '\\'));
+            if (File.Exists(path)) logo = await File.ReadAllBytesAsync(path);
+        }
+        var pdfBytes = InvoicePdfService.GeneratePdfBytes(inv, company, logo);
+        var base64 = Convert.ToBase64String(pdfBytes);
+        await JSRuntime.InvokeVoidAsync("downloadFile", $"HoaDon_{inv.SoHoaDon}.pdf", "application/pdf", base64);
+        Snackbar.Add("Đã tải xuống PDF.", Severity.Success);
+    }
+
+    private async Task DeleteInvoice(Invoice inv)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ContentText"] = $"Xóa hóa đơn {inv.SoHoaDon}? Tồn kho sẽ được hoàn lại.",
+            ["ButtonText"] = "Xóa",
+            ["Color"] = Color.Error
+        };
+        var dialog = await DialogService.ShowAsync<MessageBoxDialog>("Xác nhận xóa", parameters);
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        try
+        {
+            await InvoiceService.DeleteAsync(inv.Id);
+            await LoadInvoices();
+            Snackbar.Add("Đã xóa hóa đơn và hoàn tồn kho.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            Snackbar.Add($"Lỗi: {msg}", Severity.Error);
+        }
+    }
+}

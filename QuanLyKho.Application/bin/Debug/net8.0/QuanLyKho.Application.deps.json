@@ -1,0 +1,39 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "QuanLyKho.Application/1.0.0": {
+        "dependencies": {
+          "QuanLyKho.Domain": "1.0.0"
+        },
+        "runtime": {
+          "QuanLyKho.Application.dll": {}
+        }
+      },
+      "QuanLyKho.Domain/1.0.0": {
+        "runtime": {
+          "QuanLyKho.Domain.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "QuanLyKho.Application/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "QuanLyKho.Domain/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

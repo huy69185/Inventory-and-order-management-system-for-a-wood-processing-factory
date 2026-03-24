@@ -1,0 +1,224 @@
+@page "/invoices"
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Web.Components.Pages.Shared
+@using QuanLyKho.Web.Services
+@inject IInvoiceService InvoiceService
+@inject IWebHostEnvironment WebHost
+@inject IProductService ProductService
+@inject ICompanySettingService CompanySettingService
+@inject ISnackbar Snackbar
+@inject ICustomerService CustomerService
+@inject IDialogService DialogService
+@inject IJSRuntime JSRuntime
+
+<MudContainer MaxWidth="MaxWidth.Large">
+    <MudText Typo="Typo.h4" GutterBottom="true" Class="mt-4 mb-4">Lập & Xuất Hóa Đơn</MudText>
+
+    <!-- Thông tin khách hàng & chiết khấu -->
+    <MudCard Class="mb-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Thông Tin Hóa Đơn</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Person" OnClick="OpenSelectCustomerDialog">Chọn khách hàng</MudButton>
+                    @if (invoice.CustomerId.HasValue)
+                    {
+                        <MudChip T="string" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Small" Class="ml-2">Đã chọn KH</MudChip>
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="invoice.KhachHang" Label="Tên Khách Hàng" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="invoice.DienThoaiKH" Label="Điện Thoại KH" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="invoice.ChietKhau" Label="Chiết Khấu (%)" Variant="Variant.Outlined" Min="0" Max="100" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="invoice.ThueGTGT" Label="Thuế GTGT (%)" Variant="Variant.Outlined" Min="0" Max="100" Immediate="true" />
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+
+    <!-- Giỏ hàng -->
+    <MudCard Class="mb-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">Giỏ Hàng</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary" OnClick="OpenSelectProductDialog" Class="mb-4">
+                Chọn Sản Phẩm Thêm Vào Hóa Đơn
+            </MudButton>
+
+            <MudTable T="InvoiceDetailTemp" Items="@cartItems" Hover="true" Dense="true" Striped="true" Bordered="true" StickyHeader="true">
+                <HeaderContent>
+                    <MudTh>Tên SP</MudTh>
+                    <MudTh>Số Lượng</MudTh>
+                    <MudTh>Đơn Giá</MudTh>
+                    <MudTh>Thành Tiền</MudTh>
+                    <MudTh>Hành Động</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.TenSanPham</MudTd>
+                    <MudTd>
+                        <MudNumericField @bind-Value="context.SoLuong" Min="1" Max="@context.TonKhoConLai" Immediate="true" OnChange="TinhTong" />
+                    </MudTd>
+                    <MudTd>
+                        <MudNumericField @bind-Value="context.DonGia" Min="0" Immediate="true" OnChange="TinhTong" />
+                    </MudTd>
+                    <MudTd>@context.ThanhTien.ToString("N0") ₫</MudTd>
+                    <MudTd>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="MudBlazor.Color.Error" OnClick="() => { cartItems.Remove(context); TinhTong(); }" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudDivider Class="my-4" />
+
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.body1">Tổng tiền trước CK: @tongTienTruocCK.ToString("N0") ₫</MudText>
+                    <MudText Typo="Typo.body1">Chiết khấu: @invoice.ChietKhau %</MudText>
+                    <MudText Typo="Typo.body1">Tiền sau chiết khấu: @tongTienSauCK.ToString("N0") ₫</MudText>
+                    @if (invoice.ThueGTGT > 0)
+                    {
+                        <MudText Typo="Typo.body1">Thuế GTGT (@invoice.ThueGTGT%): @((tongTienSauCK * invoice.ThueGTGT / 100).ToString("N0")) ₫</MudText>
+                    }
+                    <MudText Typo="Typo.h6" Color="MudBlazor.Color.Primary" Class="mt-2">Tổng thanh toán: @tongThanhToan.ToString("N0") ₫</MudText>
+                    <MudNumericField @bind-Value="invoice.TienDaThu" Label="Tiền khách trả (đã thu)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.End" AdornmentText="₫" Class="mt-2" />
+                    @if (conNo > 0)
+                    {
+                        <MudText Typo="Typo.body1" Color="MudBlazor.Color.Warning">Còn nợ: @conNo.ToString("N0") ₫</MudText>
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center justify-end">
+                    <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Success" Size="MudBlazor.Size.Large" OnClick="LuuVaXuatHoaDon" Disabled="@(cartItems.Count == 0)">
+                        Lưu & Xuất Hóa Đơn PDF
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private Invoice invoice = new();
+    private List<InvoiceDetailTemp> cartItems = new();
+    private CompanySetting company = new();
+    private decimal tongTienTruocCK => cartItems.Sum(d => d.ThanhTien);
+    private decimal tongTienSauCK => tongTienTruocCK * (1 - invoice.ChietKhau / 100);
+    private decimal tongThanhToan => tongTienSauCK * (1 + invoice.ThueGTGT / 100);
+    private decimal conNo => Math.Max(0, tongThanhToan - invoice.TienDaThu);
+
+    private class InvoiceDetailTemp : InvoiceDetail
+    {
+        public int TonKhoConLai { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        company = await CompanySettingService.GetAsync();
+        invoice.ThueGTGT = company.ThueGTGTMacDinh;
+    }
+
+    private async Task OpenSelectCustomerDialog()
+    {
+        var dialog = await DialogService.ShowAsync<SelectCustomerDialog>("Chọn Khách Hàng");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Customer c)
+        {
+            invoice.CustomerId = c.Id;
+            invoice.KhachHang = c.TenKhachHang ?? "";
+            invoice.DienThoaiKH = c.DienThoai ?? "";
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenSelectProductDialog()
+    {
+        var parameters = new DialogParameters();
+        var dialog = await DialogService.ShowAsync<SelectProductDialog>("Chọn Sản Phẩm", parameters);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            var selected = result.Data as Product;
+            if (selected != null)
+            {
+                cartItems.Add(new InvoiceDetailTemp
+                {
+                    ProductId = selected.Id,
+                    TenSanPham = selected.TenSanPham,
+                    SoLuong = 1,
+                    DonGia = selected.GiaBan,
+                    TonKhoConLai = selected.SoLuongTon
+                });
+                TinhTong();
+            }
+        }
+    }
+
+    private void TinhTong()
+    {
+        StateHasChanged();
+    }
+
+    private async Task LuuVaXuatHoaDon()
+    {
+        if (cartItems.Count == 0)
+        {
+            Snackbar.Add("Giỏ hàng trống!", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            // Chuyển sang InvoiceDetail (không có TonKhoConLai)
+            var details = cartItems.Select(c => new InvoiceDetail
+            {
+                ProductId = c.ProductId,
+                TenSanPham = c.TenSanPham,
+                SoLuong = c.SoLuong,
+                DonGia = c.DonGia
+            }).ToList();
+
+            var invoiceId = await InvoiceService.CreateAsync(invoice, details);
+            Snackbar.Add("Lưu hóa đơn thành công!", Severity.Success);
+
+            await XuatPDF(invoiceId);
+
+            cartItems.Clear();
+            invoice = new Invoice { ThueGTGT = company.ThueGTGTMacDinh };
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Lỗi: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task XuatPDF(int invoiceId)
+    {
+        var inv = await InvoiceService.GetByIdAsync(invoiceId);
+        if (inv == null) return;
+        byte[]? logo = null;
+        if (!string.IsNullOrWhiteSpace(company.LogoPath))
+        {
+            var path = Path.Combine(WebHost.WebRootPath, company.LogoPath.TrimStart('/', '\\'));
+            if (File.Exists(path)) logo = await File.ReadAllBytesAsync(path);
+        }
+        var pdfBytes = InvoicePdfService.GeneratePdfBytes(inv, company, logo);
+        var base64 = Convert.ToBase64String(pdfBytes);
+        await JSRuntime.InvokeVoidAsync("downloadFile", $"HoaDon_{inv.SoHoaDon}.pdf", "application/pdf", base64);
+    }
+}

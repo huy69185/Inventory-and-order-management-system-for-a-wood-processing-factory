@@ -1,0 +1,146 @@
+@page "/wood-production"
+@using MudBlazor
+@using QuanLyKho.Application.Interfaces
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Web.Components.Pages.Shared
+
+<PageTitle>Sản Xuất Ván Ép</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4" GutterBottom="true">Sản Xuất Theo Đơn Đặt Hàng</MudText>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" GutterBottom="true">Đơn Đặt Hàng</MudText>
+                <MudSelect T="SalesOrder" @bind-Value="selectedOrder" Label="Chọn đơn hàng" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                    @foreach (var o in orders)
+                    {
+                        <MudSelectItem T="SalesOrder" Value="@o">@($"{o.SoDonHang} - {o.TenKhachHang}")</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (selectedOrder != null)
+                {
+                    <MudSelect T="SalesOrderItem" @bind-Value="selectedItem" Label="Chọn dòng cần sản xuất" Variant="Variant.Outlined" Dense="true">
+                        @foreach (var it in selectedOrder.ChiTiet)
+                        {
+                            <MudSelectItem T="SalesOrderItem" Value="@it">
+                                @($"{it.MoTaSanPham} - SL: {it.SoLuong} {it.DonVi}, Đã SX: {it.SoLuongDaSanXuat}")
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" GutterBottom="true">Nguyên Liệu Gỗ</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" OnClick="SelectNguyenLieu">
+                    Chọn nguyên liệu gỗ
+                </MudButton>
+                @if (nguyenLieu != null)
+                {
+                    <MudList T="Product" Dense="true" Class="mt-2">
+                        <MudListItem T="Product">
+                            <MudText><b>@nguyenLieu.TenSanPham</b> (@nguyenLieu.MaSanPham)</MudText>
+                        </MudListItem>
+                        <MudListItem T="Product">
+                            <MudText>Tồn kho: @nguyenLieu.SoLuongTon @nguyenLieu.DonVi</MudText>
+                        </MudListItem>
+                        <MudListItem T="Product">
+                            <MudText>Giá nhập hiện tại: @nguyenLieu.GiaNhap.ToString("N0") ₫</MudText>
+                        </MudListItem>
+                    </MudList>
+                }
+                <MudNumericField @bind-Value="soLuongNguyenLieu" Label="Số lượng gỗ dùng" Variant="Variant.Outlined" Min="0" Class="mt-2" />
+                <MudNumericField @bind-Value="soLuongHoanThanh" Label="Số lượng hoàn thành (theo đơn)" Variant="Variant.Outlined" Min="0" Class="mt-2" />
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudGrid>
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="chiPhiKhac" Label="Chi phí khác (keo, điện, công,...)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.End" AdornmentText="₫" />
+                    </MudItem>
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="ghiChu" Label="Ghi chú" Variant="Variant.Outlined" Lines="2" />
+                    </MudItem>
+                    <MudItem xs="12" Class="d-flex justify-end mt-2">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Done" OnClick="ThucHienSanXuat"
+                                   Disabled="@(nguyenLieu == null || selectedItem == null || soLuongNguyenLieu <= 0 || soLuongHoanThanh <= 0)">
+                            Ghi nhận sản xuất
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    [Inject] private IProductionService ProductionService { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IProductService ProductService { get; set; } = default!;
+    [Inject] private ISalesOrderService SalesOrderService { get; set; } = default!;
+
+    private List<SalesOrder> orders = new();
+    private SalesOrder? selectedOrder;
+    private SalesOrderItem? selectedItem;
+    private Product? nguyenLieu;
+    private int soLuongNguyenLieu;
+    private int soLuongHoanThanh;
+    private decimal chiPhiKhac;
+    private string ghiChu = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await SalesOrderService.GetAllAsync();
+        orders = orders.Where(o => o.TrangThai != SalesOrderStatus.HoanThanh && o.TrangThai != SalesOrderStatus.DaHuy).ToList();
+    }
+
+    private async Task SelectNguyenLieu()
+    {
+        var dialog = await DialogService.ShowAsync<SelectProductDialog>("Chọn nguyên liệu gỗ");
+        var result = await dialog.Result;
+        if (!result.Canceled && result.Data is Product p)
+        {
+            nguyenLieu = await ProductService.GetByIdAsync(p.Id);
+            StateHasChanged();
+        }
+    }
+
+    private async Task ThucHienSanXuat()
+    {
+        if (nguyenLieu == null || selectedItem == null) return;
+
+        try
+        {
+            await ProductionService.ProduceForOrderAsync(selectedItem.Id, nguyenLieu.Id, soLuongNguyenLieu, soLuongHoanThanh, chiPhiKhac, ghiChu);
+            Snackbar.Add("Đã ghi nhận sản xuất cho đơn hàng.", Severity.Success);
+
+            // Reload tồn kho & đơn hàng sau khi sản xuất
+            nguyenLieu = await ProductService.GetByIdAsync(nguyenLieu.Id);
+            orders = await SalesOrderService.GetAllAsync();
+            orders = orders.Where(o => o.TrangThai != SalesOrderStatus.HoanThanh && o.TrangThai != SalesOrderStatus.DaHuy).ToList();
+            if (selectedOrder != null)
+            {
+                selectedOrder = orders.FirstOrDefault(o => o.Id == selectedOrder.Id);
+                selectedItem = selectedOrder?.ChiTiet.FirstOrDefault(i => i.Id == selectedItem.Id);
+            }
+
+            soLuongNguyenLieu = 0;
+            soLuongHoanThanh = 0;
+            chiPhiKhac = 0;
+            ghiChu = "";
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}
+

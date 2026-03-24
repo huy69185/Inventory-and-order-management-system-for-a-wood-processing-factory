@@ -1,0 +1,30 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>@(Item.Id == 0 ? "Thêm khấu trừ thuế TNCN" : "Sửa khấu trừ thuế TNCN")</TitleContent>
+    <DialogContent>
+        <MudForm>
+            <MudDatePicker @bind-Date="NgayChi" Label="Ngày chi trả" DateFormat="dd/MM/yyyy" Variant="Variant.Outlined" Class="mt-2" />
+            <MudTextField @bind-Value="Item.NguoiNhan" Label="Người nhận (cá nhân)" Variant="Variant.Outlined" Class="mt-2" />
+            <MudTextField @bind-Value="Item.MaSoThue" Label="Mã số thuế người nhận" Variant="Variant.Outlined" Class="mt-2" />
+            <MudNumericField @bind-Value="Item.ThuNhapChiuThue" Label="Thu nhập chịu thuế (₫)" Variant="Variant.Outlined" Min="0" Class="mt-2" />
+            <MudNumericField @bind-Value="Item.ThueKhauTru" Label="Thuế TNCN đã khấu trừ (₫)" Variant="Variant.Outlined" Min="0" Class="mt-2" />
+            <MudTextField @bind-Value="Item.GhiChu" Label="Ghi chú" Variant="Variant.Outlined" Class="mt-2" Lines="2" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Lưu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public WithholdingTax Item { get; set; } = new();
+
+    private DateTime? NgayChi { get => Item.NgayChi; set => Item.NgayChi = value ?? DateTime.Now; }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(Item));
+    private void Cancel() => MudDialog.Cancel();
+}

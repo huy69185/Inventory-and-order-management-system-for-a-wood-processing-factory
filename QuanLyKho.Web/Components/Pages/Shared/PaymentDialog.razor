@@ -1,0 +1,38 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>Thu tiền - Hóa đơn @Invoice?.SoHoaDon</TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2">Tổng thanh toán: <strong>@(Invoice?.TongThanhToan.ToString("N0")) ₫</strong></MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">Đã thu: @(Invoice?.TienDaThu.ToString("N0")) ₫ — Còn nợ: @(Invoice?.ConNo.ToString("N0")) ₫</MudText>
+        <MudNumericField @bind-Value="TienDaThu" Label="Số tiền đã thu (tổng)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.End" AdornmentText="₫" />
+        <MudText Typo="Typo.caption" Class="mt-2">Nhập tổng số tiền khách đã trả (trả trước + trả thêm). Bằng tổng thanh toán = đã thu đủ.</MudText>
+        @if (Invoice != null && Invoice.TongThanhToan > 0)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Success" Class="mt-2" OnClick="SetFullyPaid">Thu đủ (@Invoice.TongThanhToan.ToString("N0") ₫)</MudButton>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Cập nhật</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Invoice? Invoice { get; set; }
+    private decimal TienDaThu { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Invoice != null) TienDaThu = Invoice.TienDaThu;
+    }
+
+    private void SetFullyPaid()
+    {
+        if (Invoice != null) TienDaThu = Invoice.TongThanhToan;
+    }
+    private void Submit() => MudDialog.Close(DialogResult.Ok(TienDaThu));
+    private void Cancel() => MudDialog.Cancel();
+}

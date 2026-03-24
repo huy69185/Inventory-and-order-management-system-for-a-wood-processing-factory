@@ -1,0 +1,56 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+
+<MudDialog>
+    <TitleContent>Thanh toán đơn hàng @Order?.SoDonHang</TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Tổng tiền: <b>@Order?.TongTien.ToString("N0") ₫</b>
+        </MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Đã trả: @(Order?.TienDaTraTruoc.ToString("N0") ?? "0") ₫ — Còn lại: @(Order?.ConLai.ToString("N0") ?? "0") ₫
+        </MudText>
+        <MudNumericField T="decimal"
+                         @bind-Value="TienDaTraTruoc"
+                         Label="Tổng tiền đã thanh toán"
+                         Variant="Variant.Outlined"
+                         Min="0"
+                         Adornment="Adornment.End"
+                         AdornmentText="₫" />
+        @if (Order is not null && Order.TongTien > 0)
+        {
+            <MudButton Variant="Variant.Outlined"
+                       Color="Color.Success"
+                       Class="mt-2"
+                       OnClick="SetFullyPaid">
+                Thanh toán đủ (@Order.TongTien.ToString("N0") ₫)
+            </MudButton>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Cập nhật</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public SalesOrder? Order { get; set; }
+
+    private decimal TienDaTraTruoc { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (Order != null) TienDaTraTruoc = Order.TienDaTraTruoc;
+    }
+
+    private void SetFullyPaid()
+    {
+        if (Order != null)
+            TienDaTraTruoc = Order.TongTien;
+    }
+
+    private void Submit() => MudDialog.Close(DialogResult.Ok(TienDaTraTruoc));
+    private void Cancel() => MudDialog.Cancel();
+}
+

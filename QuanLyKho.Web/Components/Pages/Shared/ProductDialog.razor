@@ -1,0 +1,102 @@
+@using MudBlazor
+@using QuanLyKho.Domain.Entities
+@using QuanLyKho.Application.Interfaces
+
+<MudDialog>
+    <TitleContent>
+        @(Product.Id == 0 ? "Thêm Sản Phẩm Mới" : "Sửa Sản Phẩm")
+    </TitleContent>
+
+    <DialogContent>
+        <MudForm>
+            <MudTextField @bind-Value="Product.MaSanPham"
+                          Label="Mã Sản Phẩm"
+                          Variant="Variant.Outlined"
+                          Class="mt-4" />
+
+            <MudTextField @bind-Value="Product.TenSanPham"
+                          Label="Tên Sản Phẩm"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Vui lòng nhập tên sản phẩm"
+                          Class="mt-4" />
+
+            <MudTextField @bind-Value="Product.DonVi"
+                          Label="Đơn Vị (Cái, Kg, Lít...)"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Vui lòng nhập đơn vị"
+                          Class="mt-4" />
+
+            <MudNumericField @bind-Value="Product.SoLuongTon"
+                             Label="Tồn Kho Ban Đầu"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Class="mt-4" />
+
+            <MudNumericField @bind-Value="Product.GiaNhap"
+                             Label="Giá Nhập"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Adornment="Adornment.End"
+                             AdornmentText="₫"
+                             Class="mt-4" />
+
+            <MudNumericField @bind-Value="Product.GiaBan"
+                             Label="Giá Bán"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             Required="true"
+                             RequiredError="Vui lòng nhập giá bán"
+                             Adornment="Adornment.End"
+                             AdornmentText="₫"
+                             Class="mt-4" />
+
+            <MudNumericField @bind-Value="Product.SoLuongCanhBao"
+                             Label="Ngưỡng cảnh báo tồn (sắp hết hàng)"
+                             Variant="Variant.Outlined"
+                             Min="0"
+                             HelperText="Cảnh báo khi tồn kho dưới số này"
+                             Class="mt-4" />
+
+            <MudSelect T="int?"
+                       @bind-Value="Product.SupplierId"
+                       Label="Nhà cung cấp chính"
+                       Variant="Variant.Outlined"
+                       Class="mt-4">
+                @foreach (var s in suppliers)
+                {
+                    <MudSelectItem T="int?" Value="@((int?)s.Id)">@($"{s.MaNhaCungCap} - {s.TenNhaCungCap}")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancel">Hủy</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="Submit">Lưu</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public Product Product { get; set; } = new();
+    [Inject] private ISupplierService SupplierService { get; set; } = default!;
+
+    private List<Supplier> suppliers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        suppliers = await SupplierService.GetAllAsync(null);
+    }
+
+    private async Task Submit()
+    {
+        // Trả về đối tượng Product đã bind 
+        MudDialog.Close(DialogResult.Ok(Product));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}
